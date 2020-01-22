@@ -66,8 +66,8 @@ public:
     WarpX ();
     ~WarpX ();
 
-    static std::string Version ();
-    static std::string PicsarVersion ();
+    static std::string Version (); //! Version of WarpX executable
+    static std::string PicsarVersion (); //! Version of PICSAR dependency
 
     int Verbose () const { return verbose; }
 
@@ -83,6 +83,9 @@ public:
                          ParserWrapper *field_parser=nullptr);
 
     static void GotoNextLine (std::istream& is);
+
+    //! Author of an input file / simulation setup
+    static std::string authors;
 
     // External fields added to particle fields.
     static amrex::Vector<amrex::Real> B_external_particle;
