@@ -1,3 +1,4 @@
+#include "CustomizedDiags.H"
 #include "ParticleEnergy.H"
 #include "FieldEnergy.H"
 #include "MultiReducedDiags.H"
@@ -41,6 +42,11 @@ MultiReducedDiags::MultiReducedDiags ()
         {
             m_multi_rd[i_rd].reset
                 ( new FieldEnergy(m_rd_names[i_rd]));
+        }
+        else if (rd_type.compare("CustomizedDiags") == 0)
+        {
+            m_multi_rd[i_rd].reset
+                ( new CustomizedDiags(m_rd_names[i_rd]));
         }
         else
         { Abort("No matching reduced diagnostics type found."); }

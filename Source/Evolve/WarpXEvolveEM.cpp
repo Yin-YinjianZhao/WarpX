@@ -201,6 +201,11 @@ WarpX::EvolveEM (int numsteps)
             reduced_diags->WriteToFile(step);
         }
 
+        /// Yin's diags
+        {
+            #include "yin_diags.h"
+        }
+
         // slice gen //
         if (to_make_plot || do_insitu || to_make_slice_plot)
         {
