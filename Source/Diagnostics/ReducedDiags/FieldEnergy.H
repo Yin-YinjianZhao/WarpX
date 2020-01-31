@@ -1,3 +1,10 @@
+/* Copyright 2019-2020 Yinjian Zhao
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
+
 #ifndef WARPX_DIAGNOSTICS_REDUCEDDIAGS_FIELDENERGY_H_
 #define WARPX_DIAGNOSTICS_REDUCEDDIAGS_FIELDENERGY_H_
 
@@ -7,7 +14,7 @@
 /**
  *  This class mainly contains a function that
  *  computes the field energy.
-*/
+ */
 class FieldEnergy : public ReducedDiags
 {
 public:
@@ -25,6 +32,5 @@ public:
     virtual void ComputeDiags(int step) override final;
 
 };
-///< end class FieldEnergy
 
-#endif // WARPX_DIAGNOSTICS_REDUCEDDIAGS_FIELDENERGY_H_
+#endif

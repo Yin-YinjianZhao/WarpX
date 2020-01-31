@@ -1,3 +1,14 @@
+/* Copyright 2016-2020 Andrew Myers, Ann Almgren, Aurore Blelly
+ * Axel Huebl, Burlen Loring, David Grote
+ * Glenn Richardson, Jean-Luc Vay, Junmin Gu
+ * Mathieu Lobet, Maxence Thevenet, Remi Lehe
+ * Revathi Jambunathan, Weiqun Zhang, Yinjian Zhao
+ * levinem
+ *
+ * This file is part of WarpX.
+ *
+ * License: BSD-3-Clause-LBNL
+ */
 #include <WarpX.H>
 #include <WarpX_f.H>
 #include <WarpXConst.H>
@@ -23,9 +34,6 @@
 #include <numeric>
 
 using namespace amrex;
-
-Vector<Real> WarpX::B_external_particle(3, 0.0);
-Vector<Real> WarpX::E_external_particle(3, 0.0);
 
 Vector<Real> WarpX::E_external_grid(3, 0.0);
 Vector<Real> WarpX::B_external_grid(3, 0.0);
@@ -58,6 +66,7 @@ long WarpX::charge_deposition_algo;
 long WarpX::field_gathering_algo;
 long WarpX::particle_pusher_algo;
 int WarpX::maxwell_fdtd_solver_id;
+int WarpX::do_dive_cleaning = 0;
 
 long WarpX::n_rz_azimuthal_modes = 1;
 long WarpX::ncomps = 1;
@@ -155,7 +164,7 @@ WarpX::WarpX ()
     ReadParameters();
 
 #ifdef WARPX_USE_OPENPMD
-    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend);
+    m_OpenPMDPlotWriter = new WarpXOpenPMDPlot(openpmd_tspf, openpmd_backend, WarpX::getPMLdirections());
 #endif
 
     // Geometry on all levels has been defined already.
@@ -346,9 +355,6 @@ WarpX::ReadParameters ()
             pp.query("zmax_plasma_to_compute_max_step",
                       zmax_plasma_to_compute_max_step);
 
-        pp.queryarr("B_external_particle", B_external_particle);
-        pp.queryarr("E_external_particle", E_external_particle);
-
         pp.query("do_moving_window", do_moving_window);
         if (do_moving_window)
         {
@@ -476,12 +482,11 @@ WarpX::ReadParameters ()
             amrex::Abort("J-damping can only be done when PML are inside simulation domain (do_pml_in_domain=1)");
         }
 
-        pp.query("dump_openpmd", dump_openpmd);
+        pp.query("openpmd_int", openpmd_int);
         pp.query("openpmd_backend", openpmd_backend);
 #ifdef WARPX_USE_OPENPMD
         pp.query("openpmd_tspf", openpmd_tspf);
 #endif
-        pp.query("dump_plotfiles", dump_plotfiles);
         pp.query("plot_costs", plot_costs);
         pp.query("plot_raw_fields", plot_raw_fields);
         pp.query("plot_raw_fields_guards", plot_raw_fields_guards);
@@ -1226,6 +1231,24 @@ WarpX::GetPML (int lev)
     } else {
         return nullptr;
     }
+}
+
+std::vector< bool >
+WarpX::getPMLdirections() const
+{
+    std::vector< bool > dirsWithPML( 6, false );
+#if AMREX_SPACEDIM!=3
+    dirsWithPML.resize( 4 );
+#endif
+    if( do_pml )
+    {
+        for( auto i = 0u; i < dirsWithPML.size() / 2u; ++i )
+        {
+            dirsWithPML.at( 2u*i      ) = bool(do_pml_Lo[i]);
+            dirsWithPML.at( 2u*i + 1u ) = bool(do_pml_Hi[i]);
+        }
+    }
+    return dirsWithPML;
 }
 
 void
