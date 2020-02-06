@@ -31,7 +31,7 @@ for (int i_s = 0; i_s < species_number; ++i_s)
             ofs << std::fixed << std::setprecision(14)
                 << std::scientific;
 
-            /// get particlu arrays
+            /// get particle arrays
             pti.GetPosition(x, y, z);
             auto & w  = pti.GetAttribs(PIdx::w);
             auto & ux = pti.GetAttribs(PIdx::ux);
