@@ -98,6 +98,11 @@ WarpX::InitData ()
             reduced_diags->ComputeDiags(-1);
             reduced_diags->WriteToFile(-1);
         }
+
+        // Yin's diags
+        {
+            #include "yin_diags.h"
+        }
     }
 }
 
