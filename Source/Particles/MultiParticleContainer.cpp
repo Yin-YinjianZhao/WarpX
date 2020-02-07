@@ -12,7 +12,6 @@
 
 #include <AMReX_Vector.H>
 
-#include <WarpX_f.H>
 #include <WarpX.H>
 
 //This is now needed for writing a binary file on disk.
@@ -673,8 +672,8 @@ MultiParticleContainer::doFieldIonization ()
                 auto& dst_tile = pc_product->ParticlesAt(lev, mfi);
 
                 auto np_dst = dst_tile.numParticles();
-                auto num_added = filterCopyTransformParticles(dst_tile, src_tile, np_dst,
-                                                              Filter, Copy, Transform);
+                auto num_added = filterCopyTransformParticles<1>(dst_tile, src_tile, np_dst,
+                                                                 Filter, Copy, Transform);
 
                 setNewParticleIDs(dst_tile, np_dst, num_added);
             }
