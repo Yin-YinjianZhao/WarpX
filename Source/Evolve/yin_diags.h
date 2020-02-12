@@ -1,3 +1,21 @@
+int output_freq = 0;
+int output_Ex   = 0;
+int output_Ey   = 0;
+int output_Ez   = 0;
+int output_Bx   = 0;
+int output_By   = 0;
+int output_Bz   = 0;
+int output_P    = 0;
+ParmParse pp("yin");
+pp.query("output_freq", output_freq);
+pp.query("output_Ex",   output_Ex);
+pp.query("output_Ey",   output_Ey);
+pp.query("output_Ez",   output_Ez);
+pp.query("output_Bx",   output_Bx);
+pp.query("output_By",   output_By);
+pp.query("output_Bz",   output_Bz);
+pp.query("output_P",    output_P);
+
 /// output frequency
 int output_freq = 0;
 
@@ -38,26 +56,33 @@ if ( output_freq > 0 && (step+1) % output_freq == 0 )
     int nz = n_cell[2];
 
     /// output field slice
+    if (output_Ex)
     {
         #include "yin_diags_Ex.h"
     }
+    if (output_Ey)
     {
         #include "yin_diags_Ey.h"
     }
+    if (output_Ez)
     {
         #include "yin_diags_Ez.h"
     }
+    if (output_Bx)
     {
         #include "yin_diags_Bx.h"
     }
+    if (output_By)
     {
         #include "yin_diags_By.h"
     }
+    if (output_Bz)
     {
         #include "yin_diags_Bz.h"
     }
 
     /// output particle data
+    if (output_P)
     {
         #include "yin_diags_P.h"
     }
