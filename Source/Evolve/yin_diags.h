@@ -16,9 +16,6 @@ pp.query("output_By",   output_By);
 pp.query("output_Bz",   output_Bz);
 pp.query("output_P",    output_P);
 
-/// output frequency
-int output_freq = 0;
-
 /// judge if do diags
 /// step+1 is the current time step
 if ( output_freq > 0 && (step+1) % output_freq == 0 )
