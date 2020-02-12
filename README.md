@@ -27,3 +27,11 @@ To contact the developers, feel free to open an issue on this repo, or visit our
 ## Contributing
 
 Our workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## ADDITIONAL DIAGNOSTICS BY YIN
+
+Input paramters:
+
+`yin.output_freq = 100` output every 100 time steps
+
+`yin.output_Ex/Ey/Ez/Bx/By/Bz/P = 1 or 0` do or not the output of Ex, Ey, Ez, Bx, By, Bz, and particle data.
