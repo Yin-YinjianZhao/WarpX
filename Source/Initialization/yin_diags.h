@@ -76,7 +76,7 @@ if ( output_freq > 0 )
     {
         #include "yin_diags_Bz.h"
     }
-    
+
     /// output particle data
     if (output_P)
     {
