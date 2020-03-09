@@ -8,18 +8,16 @@
  *
  * License: BSD-3-Clause-LBNL
  */
-#include <MultiParticleContainer.H>
+#include "MultiParticleContainer.H"
+#include "Utils/WarpXUtil.H"
+#include "WarpX.H"
 
 #include <AMReX_Vector.H>
-
-#include <WarpX.H>
-
-//This is now needed for writing a binary file on disk.
-#include <WarpXUtil.H>
 
 #include <limits>
 #include <algorithm>
 #include <string>
+
 
 using namespace amrex;
 
@@ -275,75 +273,6 @@ MultiParticleContainer::InitData ()
 
 }
 
-
-#ifdef WARPX_DO_ELECTROSTATIC
-void
-MultiParticleContainer::FieldGatherES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                       const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks)
-{
-    for (auto& pc : allcontainers) {
-        pc->FieldGatherES(E, masks);
-    }
-}
-
-void
-MultiParticleContainer::EvolveES (const Vector<std::array<std::unique_ptr<MultiFab>, 3> >& E,
-                                        Vector<std::unique_ptr<MultiFab> >& rho,
-                                  Real t, Real dt)
-{
-
-    int nlevs = rho.size();
-    int ng = rho[0]->nGrow();
-
-    for (unsigned i = 0; i < nlevs; i++) {
-        rho[i]->setVal(0.0, ng);
-    }
-
-    for (auto& pc : allcontainers) {
-        pc->EvolveES(E, rho, t, dt);
-    }
-
-    for (unsigned i = 0; i < nlevs; i++) {
-        const Geometry& gm = allcontainers[0]->Geom(i);
-        rho[i]->SumBoundary(gm.periodicity());
-    }
-}
-
-void
-MultiParticleContainer::
-DepositCharge (Vector<std::unique_ptr<MultiFab> >& rho, bool local)
-{
-    int nlevs = rho.size();
-    int ng = rho[0]->nGrow();
-
-    for (unsigned i = 0; i < nlevs; i++) {
-        rho[i]->setVal(0.0, ng);
-    }
-
-    for (unsigned i = 0, n = allcontainers.size(); i < n; ++i) {
-        allcontainers[i]->DepositCharge(rho, true);
-    }
-
-    if (!local) {
-        for (unsigned i = 0; i < nlevs; i++) {
-            const Geometry& gm = allcontainers[0]->Geom(i);
-            rho[i]->SumBoundary(gm.periodicity());
-        }
-    }
-}
-
-amrex::Real
-MultiParticleContainer::sumParticleCharge (bool local)
-{
-    amrex::Real total_charge = allcontainers[0]->sumParticleCharge(local);
-    for (unsigned i = 1, n = allcontainers.size(); i < n; ++i) {
-        total_charge += allcontainers[i]->sumParticleCharge(local);
-    }
-    return total_charge;
-}
-
-#endif // WARPX_DO_ELECTROSTATIC
-
 void
 MultiParticleContainer::FieldGather (int lev,
                                      const MultiFab& Ex, const MultiFab& Ey,
@@ -414,10 +343,10 @@ MultiParticleContainer::GetChargeDensity (int lev, bool local)
 }
 
 void
-MultiParticleContainer::SortParticlesByCell ()
+MultiParticleContainer::SortParticlesByBin (amrex::IntVect bin_size)
 {
     for (auto& pc : allcontainers) {
-        pc->SortParticlesByCell();
+        pc->SortParticlesByBin(bin_size);
     }
 }
 
@@ -487,14 +416,14 @@ MultiParticleContainer::PostRestart ()
 
 void
 MultiParticleContainer
-::GetLabFrameData (const std::string& snapshot_name,
-                   const int i_lab, const int direction,
+::GetLabFrameData (const std::string& /*snapshot_name*/,
+                   const int /*i_lab*/, const int direction,
                    const Real z_old, const Real z_new,
                    const Real t_boost, const Real t_lab, const Real dt,
                    Vector<WarpXParticleContainer::DiagnosticParticleData>& parts) const
 {
 
-    BL_PROFILE("MultiParticleContainer::GetLabFrameData");
+    WARPX_PROFILE("MultiParticleContainer::GetLabFrameData");
 
     // Loop over particle species
     for (int i = 0; i < nspecies_back_transformed_diagnostics; ++i){
@@ -639,7 +568,7 @@ MultiParticleContainer::getSpeciesID (std::string product_str)
 void
 MultiParticleContainer::doFieldIonization ()
 {
-    BL_PROFILE("MPC::doFieldIonization");
+    WARPX_PROFILE("MPC::doFieldIonization");
 
     // Loop over all species.
     // Ionized particles in pc_source create particles in pc_product
@@ -684,7 +613,7 @@ MultiParticleContainer::doFieldIonization ()
 void
 MultiParticleContainer::doCoulombCollisions ()
 {
-    BL_PROFILE("MPC::doCoulombCollisions");
+    WARPX_PROFILE("MPC::doCoulombCollisions");
 
     for (int i = 0; i < ncollisions; ++i)
     {

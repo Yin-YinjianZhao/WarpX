@@ -10,10 +10,10 @@
 #ifndef WARPX_PhysicalParticleContainer_H_
 #define WARPX_PhysicalParticleContainer_H_
 
-#include <PlasmaInjector.H>
-#include <WarpXParticleContainer.H>
-#include <NCIGodfreyFilter.H>
-#include <Ionization.H>
+#include "Initialization/PlasmaInjector.H"
+#include "WarpXParticleContainer.H"
+#include "Filter/NCIGodfreyFilter.H"
+#include "Particles/ElementaryProcess/Ionization.H"
 
 #include <AMReX_IArrayBox.H>
 
@@ -47,15 +47,6 @@ public:
     virtual void InitData () override;
 
     void InitIonizationModule ();
-
-#ifdef WARPX_DO_ELECTROSTATIC
-    virtual void FieldGatherES(const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                               const amrex::Vector<std::unique_ptr<amrex::FabArray<amrex::BaseFab<int> > > >& masks) override;
-
-    virtual void EvolveES (const amrex::Vector<std::array<std::unique_ptr<amrex::MultiFab>, 3> >& E,
-                           amrex::Vector<std::unique_ptr<amrex::MultiFab> >& rho,
-                           amrex::Real t, amrex::Real dt) override;
-#endif // WARPX_DO_ELECTROSTATIC
 
     /**
      * \brief Apply external E and B fields on the particles. The E and B
