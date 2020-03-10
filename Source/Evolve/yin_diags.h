@@ -5,6 +5,9 @@ int output_Ez   = 0;
 int output_Bx   = 0;
 int output_By   = 0;
 int output_Bz   = 0;
+int output_Jx   = 0;
+int output_Jy   = 0;
+int output_Jz   = 0;
 int output_P    = 0;
 ParmParse pp("yin");
 pp.query("output_freq", output_freq);
@@ -14,6 +17,9 @@ pp.query("output_Ez",   output_Ez);
 pp.query("output_Bx",   output_Bx);
 pp.query("output_By",   output_By);
 pp.query("output_Bz",   output_Bz);
+pp.query("output_Jx",   output_Jx);
+pp.query("output_Jy",   output_Jy);
+pp.query("output_Jz",   output_Jz);
 pp.query("output_P",    output_P);
 
 /// judge if do diags
@@ -43,6 +49,9 @@ if ( output_freq > 0 && (step+1) % output_freq == 0 )
     auto & Bx = warpx.getBfield(0,0);
     auto & By = warpx.getBfield(0,1);
     auto & Bz = warpx.getBfield(0,2);
+    auto & Jx = warpx.getcurrent(0,0);
+    auto & Jy = warpx.getcurrent(0,1);
+    auto & Jz = warpx.getcurrent(0,2);
 
     /// get number of cells
     Vector<int> n_cell;
@@ -76,6 +85,18 @@ if ( output_freq > 0 && (step+1) % output_freq == 0 )
     if (output_Bz)
     {
         #include "yin_diags_Bz.h"
+    }
+    if (output_Jx)
+    {
+        #include "yin_diags_Jx.h"
+    }
+    if (output_Jy)
+    {
+        #include "yin_diags_Jy.h"
+    }
+    if (output_Jz)
+    {
+        #include "yin_diags_Jz.h"
     }
 
     /// output particle data
