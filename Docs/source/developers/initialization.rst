@@ -13,10 +13,13 @@ is as follows.
 
 * ``If the simulation is a new run:``
     * Compute time step length by calling function ``ComputeDt()``.
-    * Call function ``InitFromScratch()``.
+    * Call function ``InitFromScratch()``,
+      where particle data will be allocated and initialized,
+      initial space-charge field will be computed, and
+      Perfectly Matched Layers (PML) will be initialized.
 
 * ``If the simulation is a restart:``
-    * Call function ``InitFromCheckpoint()``.
+    * Call function ``InitFromCheckpoint()`` to initialize the simulation from a Checkpoint.
     * If ``is_synchronized``, call ``ComputeDt()``.
     * Call function ``PostRestart()``.
 
@@ -36,8 +39,8 @@ according to the Courant-Friedrichs-Lewy (CFL) limit,
     { [(\Delta x)^{-2} + (\Delta y)^{-2} + (\Delta z)^{-2}]^{1/2} },
 
 where :math:`f_{CFL}` denotes the input parameter ``warpx.cfl``,
-:math:`\Delta y = 0` if the dimension is two.
-If the simulation coordinate is RZ cylindrical,
+the :math:`\Delta y` term is discarded if the dimension is 2-D X-Z.
+If the simulation coordinate is 2-D R-Z cylindrical,
 
 .. math::
     \Delta t  = \dfrac{ c f_{CFL} }
@@ -70,10 +73,7 @@ where ``time = 0.0``.
 where ``mypc`` is a unique pointer of class ``MultiParticleContainer``.
 (3) Initialize particle data by calling ``mypc->InitData()``.
 (4) Compute initial space-charge fields by calling ``ComputeSpaceChargeField(reset_fields)``.
-(5) Initialize Perfectly Matched Layers (PML) by calling ``InitPML()``.
-(6) If electrostatic mode is turned on,
-``getLevelMasks(masks)`` and ``getLevelMasks(gather_masks, n_buffer + 1)``
-are called.
+(5) Initialize PML by calling ``InitPML()``.
 
 Allocate particle data ``AllocData()``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,9 +85,38 @@ and call another ``AllocData()`` defined in class
 to call ``reserveData()`` and ``resizeData()``
 which are AMReX functions to reserve and resize data on all levels.
 
+Initialize particle data ``InitData()``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+``InitData()`` is defined in class ``MultiParticleContainer``
+to loop over every species,
+and call another ``InitData()`` defined in class
+``PhysicalParticleContainer``, which is inherited from class
+``WarpXParticleContainer``.
+In function ``PhysicalParticleContainer::InitData()``
+in the file ``PhysicalParticleContainer.cpp``,
+if ``<species>.do_field_ionization`` equals 1,
+function ``InitIonizationModule()``
+will be called to initialize the ionization module.
+Then, ``AddParticles(0)`` is called to add particles on level 0,
+in which functions ``AddNParticles``, ``AddGaussianBeam``,
+and ``AddPlasma`` could be called
+based on user's input parameters.
+Then, ``Redistribute()`` is called to redistribute particles.
 
+Initialize from Checkpoint ``WarpX::InitFromCheckpoint``
+--------------------------------------------------------
 
+Function ``WarpX::InitFromCheckpoint()`` is
+defined in ``Source/Diagnostics/WarpXIO.cpp``.
+(1) Read information from the header file ``WarpXHeader``:
+number of levels; current time step and physical time;
+time step length; if moving window is used;
+coordinates of the lower and upper corners;
+read and set boxes; masses and charges of species.
+(2) Read all field data on all levels.
+(3) Initialize PML if it is used.
+(4) Allocate particle data.
 
 
 
