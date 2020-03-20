@@ -11,17 +11,64 @@ where ``warpx`` is a variable of the ``WarpX`` class.
 The structure of the function ``WarpX::InitData()``
 is as follows.
 
-* ``If the simulation is a new run:``
+* If the simulation is a new run
     * Compute time step length by calling function ``ComputeDt()``.
     * Call function ``InitFromScratch()``,
       where particle data will be allocated and initialized,
       initial space-charge field will be computed, and
       Perfectly Matched Layers (PML) will be initialized.
 
-* ``If the simulation is a restart:``
+* If the simulation is a restart
     * Call function ``InitFromCheckpoint()`` to initialize the simulation from a Checkpoint.
-    * If ``is_synchronized``, call ``ComputeDt()``.
-    * Call function ``PostRestart()``.
+    * If ``is_synchronized = true``, i.e. particle velocity, position,
+      and :math:`E, B` fields on the mesh are all at the same time, call ``ComputeDt()``.
+    * Call function ``PostRestart()`` to loop over particle species.
+      In ``LaserParticleContainer::PostRestart()``,
+      call functions ``ComputeSpacing()`` and ``ComputeWeightMobility()`` to
+      compute particle spacing and mobility used as an antenna to generate lasers.
+      The ``PostRestart()`` function is empty for other particle containers.
+
+* Compute PML factors
+    Call function ``PML::ComputePMLFactors()`` defined in ``Source/BoundaryConditions/PML.cpp``.
+    Then ``ComputePMLFactorsB()`` and ``ComputePMLFactorsE()``
+    are called to compute PML factors for electric field and magnetic field, respectively.
+
+* If use FDTD numerical Cherenkov instability corrector (``particles.use_fdtd_nci_corr = 1``)
+    Call function ``WarpX::InitNCICorrector()`` to initialize the corrector,
+    using the Godrey's filter to suppress Numerical Cherenkov Instability,
+    which is defined in ``Source/Filter/NCIGodfreyFilter.cpp``.
+
+* If use a bilinear filter to smooth charge and current on mesh (``warpx.use_filter = 1``)
+    Call function ``WarpX::InitFilter()`` to initialize the filter,
+    in which the function ``BilinearFilter::ComputeStencils()`` is called,
+    defined in ``Source/Filter/BilinearFilter.cpp``.
+
+* Build buffer masks
+    Call function ``BuildBufferMasks()``,
+    in which ``WarpX::BuildBufferMasks()`` and ``WarpX::BuildBufferMasksInBox()``
+    defined in ``Source/WarpX.cpp``
+    are called to build buffer masks with guard cells.
+
+* Initialize diagnostics
+    Call function ``WarpX::InitDiagnostics()``,
+    defined in ``Source/Initialization/WarpXInitData.cpp``,
+    if do back-transformed diagnostics, i.e. ``warpx.do_back_transformed_diagnostics = 1``,
+    find the positions of the lab-frame box that corresponds to the boosted-frame box at time
+    :math:`t = 0`, then declare a variable of class ``BackTransformedDiagnostic``.
+
+    .. doxygenclass:: BackTransformedDiagnostic
+
+* If use ``SENSEI_INSITU``
+    Setup in situ data using SENSEI by
+    declaring a ``amrex::AmrMeshInSituBridge`` variable, then calling functions
+    ``setEnabled()``, ``setConfig()``, ``setPinMesh()``, and ``setFrequency()``.
+
+* Write initial outputs if the simulation is a new run
+    * If ``amr.plot_int > 0``, call ``WritePlotFile()``.
+    * If ``warpx.openpmd_int > 0``, call ``WriteOpenPMDFile()``.
+    * If ``amr.check_int > 0``, call ``WriteCheckPointFile()``.
+    * If ``insitu.int > 0`` and ``insitu.start = 0``, call ``UpdateInSitu()``.
+    * If reducied diagnostics is turned on, call ``reduced_diags->ComputeDiags()`` and ``reduced_diags->WriteToFile()``.
 
 Compute time step length ``WarpX::ComputeDt()``
 -----------------------------------------------
@@ -117,27 +164,3 @@ read and set boxes; masses and charges of species.
 (2) Read all field data on all levels.
 (3) Initialize PML if it is used.
 (4) Allocate particle data.
-
-
-
-
-
-
-
-
-
-
-General simulation initialization
----------------------------------
-
-Regular simulation
-~~~~~~~~~~~~~~~~~~
-
-Running in a boosted frame
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Field initialization
---------------------
-
-Particle initialization
------------------------
