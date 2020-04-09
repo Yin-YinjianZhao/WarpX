@@ -61,35 +61,31 @@ WarpX::Evolve (int numsteps)
         if (warpx_py_beforestep) warpx_py_beforestep();
 #endif
 
-        MultiFab* cost = WarpX::getCosts(0);
-        amrex::Vector<amrex::Real>* cost_heuristic = WarpX::getCostsHeuristic(0);
-        if (cost != nullptr || cost_heuristic != nullptr) {
+        amrex::Vector<amrex::Real>* cost = WarpX::getCosts(0);
+        if (cost) {
 #ifdef WARPX_USE_PSATD
             amrex::Abort("LoadBalance for PSATD: TODO");
 #endif
             if (step > 0 && (step+1) % load_balance_int == 0)
             {
                 LoadBalance();
+
                 // Reset the costs to 0
-                for (int lev = 0; lev <= finest_level; ++lev)
-                {
-                    if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
-                    {
-                        costs[lev]->setVal(0.0);
-                    } else if (WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Heuristic)
-                    {
-                        costs_heuristic[lev]->assign((*costs_heuristic[lev]).size(), 0.0);
-                    }
-                }
+                ResetCosts();
             }
             for (int lev = 0; lev <= finest_level; ++lev)
             {
-                MultiFab* cost = WarpX::getCosts(lev);
-                if (cost)
+                cost = WarpX::getCosts(lev);
+                if (cost && WarpX::load_balance_costs_update_algo == LoadBalanceCostsUpdateAlgo::Timers)
                 {
                     // Perform running average of the costs
-                    // (Giving more importance to most recent costs)
-                    cost->mult( (1. - 2./load_balance_int) );
+                    // (Giving more importance to most recent costs; only needed
+                    // for timers update, heuristic load balance considers the
+                    // instantaneous costs)
+                    for (int i=0; i<cost->size(); ++i)
+                    {
+                        (*cost)[i] *= (1. - 2./load_balance_int);
+                    }
                 }
             }
         }
@@ -193,27 +189,29 @@ WarpX::Evolve (int numsteps)
 
         int num_moved = MoveWindow(move_j);
 
-#ifdef WARPX_DO_ELECTROSTATIC
         // Electrostatic solver: particles can move by an arbitrary number of cells
-        mypc->Redistribute();
-#else
-        // Electromagnetic solver: due to CFL condition, particles can
-        // only move by one or two cells per time step
-        if (max_level == 0) {
-            int num_redistribute_ghost = num_moved;
-            if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
-                // Galilean algorithm ; particles can move by up to 2 cells
-                num_redistribute_ghost += 2;
-            } else {
-                // Standard algorithm ; particles can move by up to 1 cell
-                num_redistribute_ghost += 1;
-            }
-            mypc->RedistributeLocal(num_redistribute_ghost);
-        }
-        else {
+        if( do_electrostatic )
+        {
             mypc->Redistribute();
+        } else
+        {
+            // Electromagnetic solver: due to CFL condition, particles can
+            // only move by one or two cells per time step
+            if (max_level == 0) {
+                int num_redistribute_ghost = num_moved;
+                if ((v_galilean[0]!=0) or (v_galilean[1]!=0) or (v_galilean[2]!=0)) {
+                    // Galilean algorithm ; particles can move by up to 2 cells
+                    num_redistribute_ghost += 2;
+                } else {
+                    // Standard algorithm ; particles can move by up to 1 cell
+                    num_redistribute_ghost += 1;
+                }
+                mypc->RedistributeLocal(num_redistribute_ghost);
+            }
+            else {
+                mypc->Redistribute();
+            }
         }
-#endif
 
         bool to_sort = (sort_int > 0) && ((step+1) % sort_int == 0);
         if (to_sort) {
@@ -246,6 +244,8 @@ WarpX::Evolve (int numsteps)
             #include "yin_diags.h"
         }
 
+        multi_diags->FilterComputePackFlush( step );
+
         // slice gen //
         if (to_make_plot || to_write_openPMD || do_insitu || to_make_slice_plot)
         {
@@ -259,11 +259,7 @@ WarpX::Evolve (int numsteps)
 #endif
             UpdateAuxilaryData();
 
-            for (int lev = 0; lev <= finest_level; ++lev) {
-                mypc->FieldGather(lev,
-                                  *Efield_aux[lev][0],*Efield_aux[lev][1],*Efield_aux[lev][2],
-                                  *Bfield_aux[lev][0],*Bfield_aux[lev][1],*Bfield_aux[lev][2]);
-            }
+            FieldGather();
 
             last_plot_file_step = step+1;
             last_openPMD_step = step+1;
@@ -330,6 +326,8 @@ WarpX::Evolve (int numsteps)
                               *Bfield_aux[lev][2]);
         }
 
+        multi_diags->FilterComputePackFlush( istep[0], true );
+
         if (write_plot_file)
             WritePlotFile();
         if (write_openPMD)
@@ -388,6 +386,11 @@ WarpX::OneStep_nosub (Real cur_time)
 
 #ifdef WARPX_USE_PY
     if (warpx_py_afterdeposition) warpx_py_afterdeposition();
+#endif
+
+#ifdef WARPX_QED
+    //Do QED processes
+    mypc->doQedEvents();
 #endif
 
     SyncCurrent();
@@ -469,14 +472,20 @@ WarpX::OneStep_nosub (Real cur_time)
 void
 WarpX::OneStep_sub1 (Real curtime)
 {
-#ifdef WARPX_DO_ELECTROSTATIC
-    amrex::Abort("Electrostatic solver cannot be used with sub-cycling.");
-#endif
+    if( do_electrostatic )
+    {
+        amrex::Abort("Electrostatic solver cannot be used with sub-cycling.");
+    }
 
     // TODO: we could save some charge depositions
     // Loop over species. For each ionizable species, create particles in
     // product species.
     mypc->doFieldIonization();
+
+#ifdef WARPX_QED
+    //Do QED processes
+    mypc->doQedEvents();
+#endif
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(finest_level == 1, "Must have exactly two levels");
     const int fine_lev = 1;

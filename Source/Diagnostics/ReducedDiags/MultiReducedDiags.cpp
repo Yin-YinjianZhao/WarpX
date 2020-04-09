@@ -6,6 +6,8 @@
  */
 
 #include "CustomizedDiags.H"
+#include "LoadBalanceCosts.H"
+#include "ParticleHistogram.H"
 #include "BeamRelevant.H"
 #include "ParticleEnergy.H"
 #include "FieldEnergy.H"
@@ -34,11 +36,11 @@ MultiReducedDiags::MultiReducedDiags ()
     for (int i_rd = 0; i_rd < m_rd_names.size(); ++i_rd)
     {
 
-        ParmParse pp(m_rd_names[i_rd]);
+        ParmParse pp_rd(m_rd_names[i_rd]);
 
         // read reduced diags type
         std::string rd_type;
-        pp.query("type", rd_type);
+        pp_rd.query("type", rd_type);
 
         // match diags
         if (rd_type.compare("ParticleEnergy") == 0)
@@ -60,6 +62,16 @@ MultiReducedDiags::MultiReducedDiags ()
         {
             m_multi_rd[i_rd].reset
                 ( new BeamRelevant(m_rd_names[i_rd]));
+        }
+        else if (rd_type.compare("LoadBalanceCosts") == 0)
+        {
+            m_multi_rd[i_rd].reset
+                ( new LoadBalanceCosts(m_rd_names[i_rd]));
+        }
+        else if (rd_type.compare("ParticleHistogram") == 0)
+        {
+            m_multi_rd[i_rd].reset
+                ( new ParticleHistogram(m_rd_names[i_rd]));
         }
         else
         { Abort("No matching reduced diagnostics type found."); }
