@@ -25,7 +25,7 @@ To contact the developers, feel free to open an issue on this repo, or visit our
 
 ## Contributing
 
-Our workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
+Our workflow is described in [CONTRIBUTING.rst](CONTRIBUTING.rst).
 
 ## ADDITIONAL DIAGNOSTICS BY YIN
 
